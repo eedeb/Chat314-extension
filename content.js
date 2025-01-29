@@ -1,5 +1,6 @@
 const chat314container = document.createElement("div");
-chat314container.innerHTML = `
+const shadowRoot = chat314container.attachShadow({ mode: "open" });
+shadowRoot.innerHTML = `
     <!DOCTYPE html>
 <html lang="en">
 
@@ -108,7 +109,6 @@ chat314container.innerHTML = `
             background-color: rgba(52, 182, 255, 0.5);
             transform: scale(1.05);
         }
-
         @media screen and (max-width: 600px) {
             #chat314-responses p{
                 font-size: 16px;
@@ -174,39 +174,45 @@ chat314container.style.zIndex = "9999";
 // Insert at the beginning of the page
 document.body.prepend(chat314container);
 
+// Now target the shadow DOM for event handling
+const shadowShowButton = shadowRoot.querySelector('#show');
+const shadowChatForm = shadowRoot.querySelector('#chat-form');
+const shadowApiKeyForm = shadowRoot.querySelector('#api-key-form');
+const shadowChatResponses = shadowRoot.querySelector('#chat314-responses');
+
 $(document).ready(function () {
-    $('#show').click(function (event) {
+    $(shadowShowButton).click(function (event) {
         event.preventDefault();
-        $('#chat314-main').toggle();
+        $(shadowRoot.querySelector('#chat314-main')).toggle();
     });
 
     // Handle API key retrieval and submission
     chrome.storage.sync.get('apiKey', function(result) {
         if (result.apiKey) {
-            $('#api-key-form').hide();
-            $('#chat-form').show();
+            $(shadowApiKeyForm).hide();
+            $(shadowChatForm).show();
         } else {
-            $('#api-key-form').show();
+            $(shadowApiKeyForm).show();
         }
     });
 
     // Handle API key form submission
-    $('#api-key-form').on('submit', function (event) {
-        event.preventDefault(); // Prevent page refresh
-        var apiKey = $('input[name="api_key"]').val();
+    $(shadowApiKeyForm).on('submit', function (event) {
+        event.preventDefault();
+        var apiKey = $(shadowApiKeyForm).find('input[name="api_key"]').val();
         
         chrome.storage.sync.set({ 'apiKey': apiKey }, function() {
-            $('#api-key-form').hide();
-            $('#chat-form').show();
+            $(shadowApiKeyForm).hide();
+            $(shadowChatForm).show();
         });
     });
     
-    $('#signout').click(function(){
+    $(shadowRoot.querySelector('#signout')).click(function(){
         signout();
     });
 
     // Handle chat form submission
-    $('#chat-form').on('submit', function (event) {
+    $(shadowChatForm).on('submit', function (event) {
         event.preventDefault(); // Prevent page reload
 
         chrome.storage.sync.get('apiKey', function(result) {
@@ -219,18 +225,18 @@ $(document).ready(function () {
             var requestUrl = 'https://app.chat314.com/js_get_response/' + encodeURIComponent(apiKeyCookie);
             var currentUrl = window.location.hostname;
             var updatedInput = " site:" + currentUrl;
-            var formData = $('#chat-form').serialize();
+            var formData = $(shadowChatForm).serialize();
             formData += ' ' + encodeURIComponent(updatedInput);
 
-            $('input[name="user_input"]').val('Thinking...');
+            $(shadowChatForm).find('input[name="user_input"]').val('Thinking...');
 
             $.ajax({
                 type: 'POST',
                 url: requestUrl,
                 data: formData,
                 success: function (data) {
-                    $('input[name="user_input"]').val('');
-                    $('#chat314-responses').html('');
+                    $(shadowChatForm).find('input[name="user_input"]').val('');
+                    $(shadowChatResponses).html('');
 
                     var response1 = JSON.parse(data.response_1 || '[]');
                     var response2 = JSON.parse(data.response_2 || '[]');
@@ -240,13 +246,13 @@ $(document).ready(function () {
 
                     for (var i = 0; i < maxLength; i++) {
                         if (response2[i]) {
-                            $('#chat314-responses').prepend('<botoutput>' + makeLinksClickable(response2[i]) + '</botoutput>');
+                            $(shadowChatResponses).prepend('<botoutput>' + makeLinksClickable(response2[i]) + '</botoutput>');
                         }
                         if (response1[i]) {
-                            $('#chat314-responses').prepend('<botoutput>' + makeLinksClickable(response1[i]) + '</botoutput>');
+                            $(shadowChatResponses).prepend('<botoutput>' + makeLinksClickable(response1[i]) + '</botoutput>');
                         }
                         if (response3[i]) {
-                            $('#chat314-responses').prepend('<p>' + makeLinksClickable(response3[i]) + '</p>');
+                            $(shadowChatResponses).prepend('<p>' + makeLinksClickable(response3[i]) + '</p>');
                         }
                     }
 
@@ -261,7 +267,7 @@ $(document).ready(function () {
     });
 
     function autoScroll() {
-        var chatResponses = document.getElementById("chat314-responses");
+        var chatResponses = shadowRoot.querySelector("#chat314-responses");
         if (chatResponses) {
             chatResponses.scrollTo({
                 top: chatResponses.scrollHeight,
@@ -280,8 +286,8 @@ $(document).ready(function () {
     function signout() {
         alert('Signing out');
         chrome.storage.sync.remove('apiKey', function() {
-            $('#chat-form').hide();
-            $('#api-key-form').show();
+            $(shadowChatForm).hide();
+            $(shadowApiKeyForm).show();
         });
     }
 });
