@@ -181,89 +181,93 @@ $(document).ready(function () {
     });
 
     // Handle API key retrieval and submission
-    var apiKeyCookie = localStorage.getItem('apiKey');
-    if (apiKeyCookie) {
-        // If the API key exists, hide the API key form and show the chat form
-        $('#api-key-form').hide();
-        $('#chat-form').show();
-    } else {
-        // Otherwise, show the API key form
-        $('#api-key-form').show();
-    }
+    chrome.storage.sync.get('apiKey', function(result) {
+        if (result.apiKey) {
+            $('#api-key-form').hide();
+            $('#chat-form').show();
+        } else {
+            $('#api-key-form').show();
+        }
+    });
 
     // Handle API key form submission
-    $('#api-key-form').submit(function (event) {
-        event.preventDefault();
-        var formData = $(this).serialize();
-        var apiKey = $('input[name="api_key"]').val(); // Get the API key from the form
-        localStorage.setItem('apiKey', apiKey); // Store it in localStorage
-
-        // Hide the API key form and show the chat form
-        $('#api-key-form').hide();
-        $('#chat-form').show();
+    $('#api-key-form').on('submit', function (event) {
+        event.preventDefault(); // Prevent page refresh
+        var apiKey = $('input[name="api_key"]').val();
+        
+        chrome.storage.sync.set({ 'apiKey': apiKey }, function() {
+            $('#api-key-form').hide();
+            $('#chat-form').show();
+        });
     });
+    
     $('#signout').click(function(){
-        signout()
+        signout();
     });
+
     // Handle chat form submission
-    $('#chat-form').submit(function (event) {
-        event.preventDefault();
+    $('#chat-form').on('submit', function (event) {
+        event.preventDefault(); // Prevent page reload
 
-
-        // Get the API key from localStorage
-        var apiKeyCookie = localStorage.getItem('apiKey');
-        var requestUrl = 'https://app.chat314.com/js_get_response/' + encodeURIComponent(apiKeyCookie);
-        var currentUrl = window.location.hostname;
-        var updatedInput = " site:" + currentUrl;
-        var formData = $(this).serialize();
-        formData += ' ' + encodeURIComponent(updatedInput);
-        $('input[name="user_input"]').val('Thinking...');
-        $.ajax({
-            type: 'POST',
-            url: requestUrl,
-            data: formData,
-            success: function (data) {
-                $('input[name="user_input"]').val('');
-                // Clear the chat314-responses container
-                $('#chat314-responses').html('');
-
-                // Parse the chat314-responses into arrays
-                var response1 = JSON.parse(data.response_1 || '[]');
-                var response2 = JSON.parse(data.response_2 || '[]');
-                var response3 = JSON.parse(data.response_3 || '[]');
-
-                // Determine the maximum length of the arrays
-                var maxLength = Math.max(response1.length, response2.length, response3.length);
-
-                // Iterate through each index
-                for (var i = 0; i < maxLength; i++) {
-                    if (response2[i]) {
-                        $('#chat314-responses').prepend('<botoutput>' + makeLinksClickable(response2[i]) + '</botoutput>');
-                    }
-                    if (response1[i]) {
-                        $('#chat314-responses').prepend('<botoutput>' + makeLinksClickable(response1[i]) + '</botoutput>');
-                    }
-                    if (response3[i]) {
-                        $('#chat314-responses').prepend('<p>' + makeLinksClickable(response3[i]) + '</p>');
-                    }
-                }
-
-                autoScroll(); // Scroll to the bottom after updating the chat314-responses
-            },
-            error: function (xhr, status, error) {
-                console.error(error);
-                $('input[name="user_input"]').val(originalinput);
-                alert('There was an error while processing your input. Please try again.');
+        chrome.storage.sync.get('apiKey', function(result) {
+            var apiKeyCookie = result.apiKey;
+            if (!apiKeyCookie) {
+                alert("API key is missing. Please enter your key.");
+                return;
             }
+
+            var requestUrl = 'https://app.chat314.com/js_get_response/' + encodeURIComponent(apiKeyCookie);
+            var currentUrl = window.location.hostname;
+            var updatedInput = " site:" + currentUrl;
+            var formData = $('#chat-form').serialize();
+            formData += ' ' + encodeURIComponent(updatedInput);
+
+            $('input[name="user_input"]').val('Thinking...');
+
+            $.ajax({
+                type: 'POST',
+                url: requestUrl,
+                data: formData,
+                success: function (data) {
+                    $('input[name="user_input"]').val('');
+                    $('#chat314-responses').html('');
+
+                    var response1 = JSON.parse(data.response_1 || '[]');
+                    var response2 = JSON.parse(data.response_2 || '[]');
+                    var response3 = JSON.parse(data.response_3 || '[]');
+
+                    var maxLength = Math.max(response1.length, response2.length, response3.length);
+
+                    for (var i = 0; i < maxLength; i++) {
+                        if (response2[i]) {
+                            $('#chat314-responses').prepend('<botoutput>' + makeLinksClickable(response2[i]) + '</botoutput>');
+                        }
+                        if (response1[i]) {
+                            $('#chat314-responses').prepend('<botoutput>' + makeLinksClickable(response1[i]) + '</botoutput>');
+                        }
+                        if (response3[i]) {
+                            $('#chat314-responses').prepend('<p>' + makeLinksClickable(response3[i]) + '</p>');
+                        }
+                    }
+
+                    autoScroll();
+                },
+                error: function (xhr, status, error) {
+                    console.error(error);
+                    alert('There was an error while processing your input. Please try again.');
+                }
+            });
         });
     });
 
     function autoScroll() {
-        // Scrolls the entire page to the bottom
-        document.getElementById("chat314-responses").scrollTo({
-            top: document.getElementById("chat314-responses").scrollHeight,
-            behavior: "smooth"
-        });
+        var chatResponses = document.getElementById("chat314-responses");
+        if (chatResponses) {
+            chatResponses.scrollTo({
+                top: chatResponses.scrollHeight,
+                behavior: "smooth"
+            });
+        }
     }
 
     function makeLinksClickable(text) {
@@ -272,15 +276,12 @@ $(document).ready(function () {
             return '<a href="' + url + '" target="_blank">[]</a>';
         });
     }
+
     function signout() {
-        alert('Signing out')
-        localStorage.removeItem('apiKey');
-    }
-    function replaceCenterImageIfNeeded(text) {
-        var urlRegex = /(https?:\/\/oaidalleapiprodscus\.blob\.core\.windows\.net[^\s]+)/g;
-        var match = text.match(urlRegex);
-        if (match && match[0]) {
-            $('.Chat314-images img:nth-child(1)').attr('src', match[0]);
-        }
+        alert('Signing out');
+        chrome.storage.sync.remove('apiKey', function() {
+            $('#chat-form').hide();
+            $('#api-key-form').show();
+        });
     }
 });
