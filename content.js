@@ -1,6 +1,5 @@
-// Create a container for your HTML
-const container = document.createElement("div");
-container.innerHTML = `
+const chat314container = document.createElement("div");
+chat314container.innerHTML = `
     <!DOCTYPE html>
 <html lang="en">
 
@@ -120,7 +119,7 @@ container.innerHTML = `
                 font-size: 16px;
             }
 
-            input[type="text"], input[type="password"] {
+            chat314-input[type="text"], input[type="password"] {
                 width: 60%;
                 text-align: center;
             }
@@ -167,11 +166,11 @@ container.innerHTML = `
 
 </html>
 `;
-container.style.position = "relative";
-container.style.zIndex = "9999";
+chat314container.style.position = "relative";
+chat314container.style.zIndex = "9999";
 
 // Insert at the beginning of the page
-document.body.prepend(container);
+document.body.prepend(chat314container);
 
 $(document).ready(function () {
     $('#show').click(function (event) {
