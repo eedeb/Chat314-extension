@@ -97,7 +97,6 @@ chat314container.innerHTML = `
             transition: background-color 0.3s ease, transform 0.2s ease;
             cursor: pointer;
         }
-
         .chat314-icon img {
             width: 50px;
             height: auto;
@@ -125,7 +124,7 @@ chat314container.innerHTML = `
             }
         }
     </style>
-    </head>
+</head>
 
 <body>
 
@@ -143,8 +142,11 @@ chat314container.innerHTML = `
                 <img src="https://raw.githubusercontent.com/Mrpi314tech/Mrpi314tech.github.io/refs/heads/main/edit-icon.png" alt="Reset">
             </div>
         </a>
-        
-
+        <a class="chat314-btn" id="signout">
+        <div class="chat314-icon">
+                <img src="https://raw.githubusercontent.com/eedeb/eedeb.github.io/refs/heads/main/signout.png" alt="Signout">
+            </div>
+        </a>
         <div id="chat314-responses">
             Responses appear here
         </div>
@@ -200,7 +202,9 @@ $(document).ready(function () {
         $('#api-key-form').hide();
         $('#chat-form').show();
     });
-
+    $('#signout').click(function(){
+        signout()
+    });
     // Handle chat form submission
     $('#chat-form').submit(function (event) {
         event.preventDefault();
@@ -268,7 +272,10 @@ $(document).ready(function () {
             return '<a href="' + url + '" target="_blank">[]</a>';
         });
     }
-
+    function signout() {
+        alert('Signing out')
+        localStorage.removeItem('apiKey');
+    }
     function replaceCenterImageIfNeeded(text) {
         var urlRegex = /(https?:\/\/oaidalleapiprodscus\.blob\.core\.windows\.net[^\s]+)/g;
         var match = text.match(urlRegex);
